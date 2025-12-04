@@ -20,11 +20,17 @@ endif ()
 include_directories(
         ${ONNXRUNTIME_INCLUDE_DIRS}
         ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${PROJECT_SOURCE_DIR}/thirdparty/include  # 第三方库头文件
 )
+# -------------------------------
+# CameraOpt library
+# -------------------------------
+add_subdirectory(camera_opt)
 
 set(LIBS
     ${OpenCV_LIBS}
     ${ONNXRUNTIME_LIBS}
+    CameraOpt
 )
 
 file(GLOB_RECURSE SRC
@@ -33,8 +39,6 @@ file(GLOB_RECURSE SRC
         src/*.h
         src/*.hpp
 )
-
-add_subdirectory(camera_opt)
 
 add_executable(DetectDemo DetectDemo.cc ${SRC})
 target_link_libraries(DetectDemo ${LIBS})

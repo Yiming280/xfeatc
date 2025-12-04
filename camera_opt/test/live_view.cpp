@@ -6,7 +6,7 @@
 #include <iostream>
 
 int main(int argc, char** argv) {
-    std::string capture_params_yaml = "./_configs/capture_params_opt.yaml";
+    std::string capture_params_yaml = "C:/Users/yiming.wei/source/repos/xfeatc/_configs/capture_params_opt.yaml";
     if (argc >= 2) {
         capture_params_yaml = argv[1];
     }

@@ -1,0 +1,11 @@
+camera_key: "OPT Machine Vision:D246170336"           # camera key used for connecting to the camera with vendor:serial number format
+camera_exposure: 40000                                # camera exposure time in microseconds
+save_directory: "calibration_images"                  # directory to save images
+num_images: 20                                        # number of images to capture
+use_robot: false                                      # whether to use the robot to capture images
+robot_ip: "192.168.10.76"                             # IP address of the robot      
+num_robot_joints: 6                                   # number of joints in the robot        
+chessboard_rows: 9                                    # number of rows in the chessboard
+chessboard_cols: 14                                   # number of columns in the chessboard
+chessboard_square_size: 0.012105                      # size of each square in the chessboard
+chessboard_has_markers: true                          # whether the chessboard has markers
