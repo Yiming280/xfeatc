@@ -1,12 +1,12 @@
-cmake_minimum_required(VERSION 3.26)
-project(hiox)
+cmake_minimum_required(VERSION 3.16)
+project(XFeatC VERSION 0.0.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 
 find_package(OpenCV REQUIRED)
 
 # onnxruntime
-#set(ONNXRUNTIME_ROOT D:/Software/onnxruntime-win-x64-1.18.0)
+set(ONNXRUNTIME_ROOT "C:/onnxruntime-win-x64-1.23.2" CACHE PATH "Path to ONNX Runtime")
 set(ONNXRUNTIME_INCLUDE_DIRS ${ONNXRUNTIME_ROOT}/include)
 #
 if (CMAKE_SYSTEM_NAME MATCHES "Windows")
@@ -34,6 +34,8 @@ file(GLOB_RECURSE SRC
         src/*.hpp
 )
 
+add_subdirectory(camera_opt)
+
 add_executable(DetectDemo DetectDemo.cc ${SRC})
 target_link_libraries(DetectDemo ${LIBS})
 
@@ -42,3 +44,6 @@ target_link_libraries(MatchDemo ${LIBS})
 
 add_executable(FlowDemo FlowDemo.cc ${SRC})
 target_link_libraries(FlowDemo ${LIBS})
+
+add_executable(testDemo testDemo.cc ${SRC})
+target_link_libraries(testDemo ${LIBS})

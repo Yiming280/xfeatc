@@ -7,8 +7,8 @@
 int main(int argc, char** argv) {
     // parse arguments
     const std::string argKeys =
-            "{model | ../model/xfeat_640x640.onnx | model file path}"
-            "{img | ../data/1.png | image file path}";
+        "{model | ../../../model/xfeat_640x640.onnx | model file path}"
+        "{img | ../../../data/1.png | image file path}";
     cv::CommandLineParser parser(argc, argv, argKeys);
     auto modelFile = parser.get<std::string>("model");
     auto imgFile = parser.get<std::string>("img");
@@ -17,7 +17,9 @@ int main(int argc, char** argv) {
 
     // create XFeat object
     std::cout << "creating XFeat...\n";
-    XFeat xfeat(modelFile);
+    try {
+        XFeat xfeat(modelFile);
+    
 
     // read image
     std::cout << "reading image...\n";
@@ -27,6 +29,7 @@ int main(int argc, char** argv) {
     std::vector<cv::KeyPoint> keys;
     cv::Mat descs;
     xfeat.DetectAndCompute(img, keys, descs, 1000);
+    
 
     // draw keypoints
     cv::Mat imgColor;
@@ -35,6 +38,10 @@ int main(int argc, char** argv) {
     cv::putText(imgColor, "features: " + std::to_string(keys.size()), cv::Point(5, 30), cv::FONT_HERSHEY_SIMPLEX, 0.6, cv::Scalar(0, 255, 255), 1);
     cv::imshow("image", imgColor);
     cv::waitKey(0);
+    }
+    catch (const Ort::Exception& e) {
+        std::cout << "ERROR: " << e.what() << std::endl;
+    }
 
     return 0;
 }
