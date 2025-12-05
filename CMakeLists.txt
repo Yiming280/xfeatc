@@ -17,16 +17,6 @@ elseif (CMAKE_SYSTEM_NAME MATCHES "Linux")
     set(ONNXRUNTIME_LIBS ${ONNXRUNTIME_ROOT}/libonnxruntime.so)
 endif ()
 
-# === OPTSDK imported library ===
-add_library(OPTSDK STATIC IMPORTED)
-
-set_target_properties(OPTSDK PROPERTIES
-    IMPORTED_LOCATION
-        "${PROJECT_SOURCE_DIR}/thirdparty/lib/OPTSDK.lib"
-    INTERFACE_INCLUDE_DIRECTORIES
-        "${PROJECT_SOURCE_DIR}/thirdparty/include"
-)
-
 # Build CameraOpt library
 add_subdirectory(camera_opt)
 
@@ -43,7 +33,6 @@ set(XFEAT_INCLUDES
     ${ONNXRUNTIME_INCLUDE_DIRS}
     ${PROJECT_SOURCE_DIR}/src
     ${PROJECT_SOURCE_DIR}/camera_opt/include
-    ${PROJECT_SOURCE_DIR}/thirdparty/include
 )
 
 # --------------------------

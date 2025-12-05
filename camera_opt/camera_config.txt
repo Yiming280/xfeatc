@@ -1,0 +1,7 @@
+# camera_opt simple config
+# feature name used to set exposure (GenICam/SDK name). Common names: ExposureTime, ExposureTimeAbs
+exposure_feature=ExposureTime
+# desired exposure in microseconds
+exposure_us=40000
+# camera index (optional, not currently applied by code)
+camera_index=0
