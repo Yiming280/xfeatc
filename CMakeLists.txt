@@ -17,37 +17,61 @@ elseif (CMAKE_SYSTEM_NAME MATCHES "Linux")
     set(ONNXRUNTIME_LIBS ${ONNXRUNTIME_ROOT}/libonnxruntime.so)
 endif ()
 
-include_directories(
-        ${ONNXRUNTIME_INCLUDE_DIRS}
-        ${CMAKE_CURRENT_SOURCE_DIR}/src
-        ${PROJECT_SOURCE_DIR}/thirdparty/include  # 第三方库头文件
-)
-# -------------------------------
-# CameraOpt library
-# -------------------------------
-add_subdirectory(camera_opt)
+# === OPTSDK imported library ===
+add_library(OPTSDK STATIC IMPORTED)
 
-set(LIBS
+set_target_properties(OPTSDK PROPERTIES
+    IMPORTED_LOCATION
+        "${PROJECT_SOURCE_DIR}/thirdparty/lib/OPTSDK.lib"
+    INTERFACE_INCLUDE_DIRECTORIES
+        "${PROJECT_SOURCE_DIR}/thirdparty/include"
+)
+
+# Build CameraOpt library
+add_subdirectory(camera_opt)
+# XFeat
+include_directories(
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${PROJECT_SOURCE_DIR}/camera_opt/include
+)
+
+# --------------------------
+# Common libraries / includes
+# --------------------------
+set(XFEAT_LIBS
     ${OpenCV_LIBS}
     ${ONNXRUNTIME_LIBS}
     CameraOpt
 )
 
-file(GLOB_RECURSE SRC
-        src/*.cc
-        src/*.cpp
-        src/*.h
-        src/*.hpp
+set(XFEAT_INCLUDES
+    ${ONNXRUNTIME_INCLUDE_DIRS}
+    ${PROJECT_SOURCE_DIR}/src
 )
 
-add_executable(DetectDemo DetectDemo.cc ${SRC})
-target_link_libraries(DetectDemo ${LIBS})
+# --------------------------
+# Source files shared by all demos
+# --------------------------
+file(GLOB_RECURSE XFEAT_SRC
+    src/*.cpp
+    src/*.cc
+    src/*.hpp
+    src/*.h
+)
 
-add_executable(MatchDemo MatchDemo.cc ${SRC})
-target_link_libraries(MatchDemo ${LIBS})
+# --------------------------
+# Function to create executable
+# --------------------------
+function(create_xfeat_executable target_name source_file)
+    add_executable(${target_name} ${source_file} ${XFEAT_SRC})
+    target_link_libraries(${target_name} PRIVATE ${XFEAT_LIBS})
+    target_include_directories(${target_name} PUBLIC ${XFEAT_INCLUDES})
+endfunction()
 
-add_executable(FlowDemo FlowDemo.cc ${SRC})
-target_link_libraries(FlowDemo ${LIBS})
-
-add_executable(testDemo testDemo.cc ${SRC})
-target_link_libraries(testDemo ${LIBS})
+# --------------------------
+# All demo executables
+# --------------------------
+create_xfeat_executable(DetectDemo DetectDemo.cc)
+create_xfeat_executable(MatchDemo  MatchDemo.cc)
+create_xfeat_executable(FlowDemo   FlowDemo.cc)
+create_xfeat_executable(testDemo   testDemo.cc)
