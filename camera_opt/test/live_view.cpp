@@ -1,4 +1,4 @@
-#include <camera_opt/camera_opt.h>
+#include <camera_opt.h>
 #include <opencv2/opencv.hpp>
 #include <yaml-cpp/yaml.h>
 #include <spdlog/spdlog.h>

@@ -6,31 +6,52 @@
 
 
 int main(int argc, char** argv) {
-    // parse arguments
-    const std::string argKeys =
-            "{model | ../model/xfeat_640x640.onnx | model file path}"
-            "{img1 | ../data/1.png | the first image file path}"
-            "{img2 | ../data/2.png | the second image file path}"
-            "{ransac | 0 | use RANSAC to refine matches}";
-    cv::CommandLineParser parser(argc, argv, argKeys);
-    auto modelFile = parser.get<std::string>("model");
-    auto imgFile1 = parser.get<std::string>("img1");
-    auto imgFile2 = parser.get<std::string>("img2");
-    auto useRansac = parser.get<int>("ransac");
-    std::cout << "model file: " << modelFile << std::endl;
-    std::cout << "image file 1: " << imgFile1 << std::endl;
-    std::cout << "image file 2: " << imgFile2 << std::endl;
-    std::cout << "use RANSAC: " << (useRansac ? "true" : "false") << std::endl;
+    std::string modelFile = "../../model/xfeat_640x640.onnx";
+    std::string imgFile1  = "../../data/1.png";
+    std::string imgFile2  = "../../data/2.png";
+    int useRansac = 1;
+
+    // 手动解析命令行参数
+    for (int i = 1; i < argc; ++i) {
+        std::string arg = argv[i];
+        if (arg == "--model" && i + 1 < argc) {
+            modelFile = argv[++i];
+        } else if (arg == "--img1" && i + 1 < argc) {
+            imgFile1 = argv[++i];
+        } else if (arg == "--img2" && i + 1 < argc) {
+            imgFile2 = argv[++i];
+        } else if (arg == "--ransac" && i + 1 < argc) {
+            useRansac = std::stoi(argv[++i]);
+        } else if (arg == "--help") {
+            std::cout << "Usage: --model <model> --img1 <img1> --img2 <img2> --ransac <0|1>\n";
+            return 0;
+        }
+    }
+
+    std::cout << "Model file: " << modelFile << std::endl;
+    std::cout << "Image file 1: " << imgFile1 << std::endl;
+    std::cout << "Image file 2: " << imgFile2 << std::endl;
+    std::cout << "Use RANSAC: " << (useRansac ? "true" : "false") << std::endl;
 
     // create XFeat object
     std::cout << "creating XFeat...\n";
+    try {
     XFeat xfeat(modelFile);
 
     // read images
     std::cout << "reading images...\n";
     cv::Mat img1 = cv::imread(imgFile1, cv::IMREAD_GRAYSCALE);
     cv::Mat img2 = cv::imread(imgFile2, cv::IMREAD_GRAYSCALE);
-
+    if (img1.empty()) {
+        std::cerr << "Failed to read img1: " << imgFile1 << std::endl;
+        return -1;
+    }
+    if (img2.empty()) {
+        std::cerr << "Failed to read img2: " << imgFile2 << std::endl;
+        return -1;
+    }
+    cv::resize(img1, img1, cv::Size(640, 640));
+    cv::resize(img2, img2, cv::Size(640, 640));
     // detect xfeat corners and compute descriptors
     std::cout << "detecting features ...\n";
     std::vector<cv::KeyPoint> keys1, keys2;
@@ -71,7 +92,10 @@ int main(int argc, char** argv) {
     cv::drawMatches(imgColor1, keys1, imgColor2, keys2, matches, imgMatches);
     cv::imshow("matches", imgMatches);
     cv::waitKey(0);
-
+    }
+    catch (const Ort::Exception& e) {
+        std::cout << "ERROR: " << e.what() << std::endl;
+    }
 
     return 0;
 }

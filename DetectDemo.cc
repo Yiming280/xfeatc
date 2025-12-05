@@ -2,16 +2,50 @@
 #include <opencv2/opencv.hpp>
 #include "OnnxHelper.h"
 #include "XFeat.h"
+// #include <camera_opt.h>
 
 
 int main(int argc, char** argv) {
+    // // ------- connect camera --------
+    // const std::string camera_key = "camera_0";
+    // camera_opt::OptCamera camera(camera_key);
+    // std::string_view window_name = "camera-feed";
+    // cv::namedWindow(window_name.data(), cv::WINDOW_NORMAL | cv::WINDOW_GUI_EXPANDED);
+
+    // if (!camera.connect()) {
+    //     std::cerr << "Could not connect to the camera." << std::endl;
+    //     return -1;
+    // }
+    // bool exposure_set = camera.setExposureTime(40000);
+    // if (!exposure_set) {
+    //     std::cerr << "Could not set the camera exposure time." << std::endl;
+    //     return -1;
+    // }
+    // int image_counter = 0;
+    // while (true) {
+    //     cv::Mat image_from_camera = camera.captureImage();
+
+    //     cv::Mat resized_camera_image;
+    //     cv::resize(image_from_camera, resized_camera_image, cv::Size(), 0.25, 0.25);
+    //     cv::imshow(window_name.data(), resized_camera_image);
+    // }
+
     // parse arguments
-    const std::string argKeys =
-        "{model | C:/Users/yiming.wei/source/repos/xfeatc/model/xfeat_640x640.onnx | model file path}"
-        "{img | C:/Users/yiming.wei/source/repos/xfeatc/data/1.png | image file path}";
-    cv::CommandLineParser parser(argc, argv, argKeys);
-    auto modelFile = parser.get<std::string>("model");
-    auto imgFile = parser.get<std::string>("img");
+    // 默认路径
+    std::string modelFile = "C:/Users/yiming.wei/source/repos/xfeatc/model/xfeat_640x640.onnx";
+    std::string imgFile   = "C:/Users/yiming.wei/source/repos/xfeatc/data/1.png";
+    // 解析命令行参数
+    for (int i = 1; i < argc; ++i) {
+        std::string arg = argv[i];
+        if (arg == "--model" && i + 1 < argc) {
+            modelFile = argv[++i]; // 使用下一个参数作为 model 文件
+        } else if (arg == "--img" && i + 1 < argc) {
+            imgFile = argv[++i];   // 使用下一个参数作为图片文件
+        } else {
+            std::cerr << "未知参数或缺少值: " << arg << std::endl;
+            return 1;
+        }
+    }
     std::cout << "model file: " << modelFile << std::endl;
     std::cout << "image file: " << imgFile << std::endl;
 
@@ -23,6 +57,7 @@ int main(int argc, char** argv) {
         // read image
         std::cout << "reading image.../n";
         cv::Mat img = cv::imread(imgFile, cv::IMREAD_GRAYSCALE);
+        cv::resize(img, img, cv::Size(640, 640));
 
         // detect xfeat corners and compute descriptors
         std::vector<cv::KeyPoint> keys;

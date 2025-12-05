@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 project(XFeatC VERSION 0.0.0 LANGUAGES C CXX)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 
 find_package(OpenCV REQUIRED)
 
@@ -29,11 +29,6 @@ set_target_properties(OPTSDK PROPERTIES
 
 # Build CameraOpt library
 add_subdirectory(camera_opt)
-# XFeat
-include_directories(
-    ${CMAKE_CURRENT_SOURCE_DIR}/src
-    ${PROJECT_SOURCE_DIR}/camera_opt/include
-)
 
 # --------------------------
 # Common libraries / includes
@@ -47,6 +42,8 @@ set(XFEAT_LIBS
 set(XFEAT_INCLUDES
     ${ONNXRUNTIME_INCLUDE_DIRS}
     ${PROJECT_SOURCE_DIR}/src
+    ${PROJECT_SOURCE_DIR}/camera_opt/include
+    ${PROJECT_SOURCE_DIR}/thirdparty/include
 )
 
 # --------------------------
