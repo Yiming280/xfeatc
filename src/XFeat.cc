@@ -216,10 +216,10 @@ void XFeat::DetectAndCompute(const cv::Mat &img, std::vector<cv::KeyPoint> &keys
     }
     double interp_time = timer.Elapse();
 
-    std::cout << "score_softmax_time=" << score_softmax_time << ", score_flatten_time=" << score_flatten_time << ", nms_time=" << nms_time << std::endl;
-    std::cout << "heatmap_resize_time=" << heatMap_resize_time << ", heatmap_mul_time=" << heatMap_mul_time << ", sort_time=" << sort_time << std::endl;
-    std::cout << "desc_norm_time=" << desc_norm_time << ", interp_time=" << interp_time << std::endl;
-    std::cout << "total_time=" << (score_softmax_time +score_flatten_time + nms_time + heatMap_resize_time + heatMap_mul_time + sort_time + desc_norm_time + interp_time) << "\n" << std::endl;
+    // std::cout << "score_softmax_time=" << score_softmax_time << ", score_flatten_time=" << score_flatten_time << ", nms_time=" << nms_time << std::endl;
+    // std::cout << "heatmap_resize_time=" << heatMap_resize_time << ", heatmap_mul_time=" << heatMap_mul_time << ", sort_time=" << sort_time << std::endl;
+    // std::cout << "desc_norm_time=" << desc_norm_time << ", interp_time=" << interp_time << std::endl;
+    // std::cout << "total_time=" << (score_softmax_time +score_flatten_time + nms_time + heatMap_resize_time + heatMap_mul_time + sort_time + desc_norm_time + interp_time) << "\n" << std::endl;
 
     // add the edge
     for (auto &key : keys) {

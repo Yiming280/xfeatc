@@ -72,3 +72,105 @@ bool Matcher::RejectBadMatchesF(std::vector<cv::Point2f> &pts1, std::vector<cv::
     ReduceVector(matches, status);
     return true;
 }
+
+void Matcher::gridFilterMatches(
+	const std::vector<cv::KeyPoint>& kps,
+	std::vector<cv::DMatch>& matches,
+	int img_w, int img_h,
+	int gx, int gy,
+	int max_per_cell)
+{
+	std::vector<std::vector<std::vector<cv::DMatch>>> grid(
+		gy, std::vector<std::vector<cv::DMatch>>(gx));
+
+	for (const auto& m : matches) {
+		const cv::Point2f& p = kps[m.trainIdx].pt;
+		int cx = std::min(gx - 1, int(p.x / img_w * gx));
+		int cy = std::min(gy - 1, int(p.y / img_h * gy));
+		grid[cy][cx].push_back(m);
+	}
+
+	matches.clear();
+	for (auto& row : grid)
+		for (auto& cell : row) {
+			std::sort(cell.begin(), cell.end(),
+				[](const cv::DMatch& a, const cv::DMatch& b) {
+					return a.distance < b.distance;
+				});
+			for (int i = 0; i < std::min((int)cell.size(), max_per_cell); ++i)
+				matches.push_back(cell[i]);
+		}
+}
+
+cv::Mat Matcher::reprojectionError(
+	const cv::Mat& H,
+	const std::vector<cv::Point2f>& ptsT,
+	const std::vector<cv::Point2f>& ptsF)
+{
+	cv::Mat err(ptsT.size() * 2, 1, CV_64F);
+
+	for (size_t i = 0; i < ptsT.size(); ++i) {
+		cv::Mat pt = (cv::Mat_<double>(3, 1)
+			<< ptsT[i].x, ptsT[i].y, 1.0);
+		cv::Mat proj = H * pt;
+		double x = proj.at<double>(0) / proj.at<double>(2);
+		double y = proj.at<double>(1) / proj.at<double>(2);
+
+		err.at<double>(2 * i) = x - ptsF[i].x;
+		err.at<double>(2 * i + 1) = y - ptsF[i].y;
+	}
+	return err;
+}
+
+cv::Mat Matcher::numericalJacobian(
+	const cv::Mat& H,
+	const std::vector<cv::Point2f>& ptsT,
+	const std::vector<cv::Point2f>& ptsF,
+	double eps = 1e-6)
+{
+	cv::Mat J(ptsT.size() * 2, 9, CV_64F);
+	cv::Mat baseErr = reprojectionError(H, ptsT, ptsF);
+
+	for (int k = 0; k < 9; ++k) {
+		cv::Mat H_eps = H.clone();
+		H_eps.at<double>(k / 3, k % 3) += eps;
+		cv::Mat err = reprojectionError(H_eps, ptsT, ptsF);
+		cv::subtract(err, baseErr, J.col(k));
+		J.col(k) /= eps;
+	}
+	return J;
+}
+
+void Matcher::refineHomography(
+	cv::Mat& H,
+	const std::vector<cv::Point2f>& ptsT,
+	const std::vector<cv::Point2f>& ptsF,
+	int iterations)
+{
+	H.convertTo(H, CV_64F);
+
+	for (int i = 0; i < iterations; ++i) {
+		cv::Mat err = reprojectionError(H, ptsT, ptsF);
+		cv::Mat J = numericalJacobian(H, ptsT, ptsF);
+
+		cv::Mat delta;
+		cv::solve(J, -err, delta, cv::DECOMP_SVD);
+
+		// 限制单步更新幅度，避免数值不稳定
+		double delta_norm = cv::norm(delta);
+		const double max_step = 1e-1;
+		if (delta_norm > max_step) {
+			delta *= (max_step / delta_norm);
+		}
+
+		for (int k = 0; k < 9; ++k)
+			H.at<double>(k / 3, k % 3) += delta.at<double>(k);
+
+		// 归一化 homography（消除尺度漂移）
+		if (std::abs(H.at<double>(2,2)) > 1e-12)
+			H /= H.at<double>(2,2);
+
+		if (cv::norm(delta) < 1e-6)
+			break;
+	}
+}

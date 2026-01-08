@@ -143,7 +143,7 @@ int main(int argc, char** argv) {
     }
 
     // compute features for template
-    xfeat.DetectAndCompute(templateImg, keysT, descsT, 100);
+    xfeat.DetectAndCompute(templateImg, keysT, descsT, 1000);
 
     if (keysT.empty() || descsT.empty()) {
         std::cerr << "No features found in template." << std::endl;
@@ -164,25 +164,24 @@ int main(int argc, char** argv) {
 
         std::vector<cv::KeyPoint> keysF;
         cv::Mat descsF;
-        xfeat.DetectAndCompute(img2, keysF, descsF, 100);
+        xfeat.DetectAndCompute(img2, keysF, descsF, 1000);
 
-        if (keysF.empty() || descsF.empty()) {
-            std::cerr << "No features found in second image." << std::endl;
-            return -1;
+        std::vector<cv::DMatch> matches;
+        if (!keysF.empty() && !descsF.empty()) {
+            Matcher::Match(descsT, descsF, matches, 0.82f);
+            // Matcher::gridFilterMatches(keysF, matches,
+            //       img2.cols, img2.rows);
         }
+        std::vector<cv::Point2f> ptsT, ptsF;
+        for (auto &m : matches) {
+            ptsT.push_back(keysT[m.queryIdx].pt);
+            ptsF.push_back(keysF[m.trainIdx].pt);
+        }
+        Matcher::RejectBadMatchesF(ptsT, ptsF, matches, 4.0f);
+        Matcher::gridFilterMatches(keysF, matches,
+                  img2.cols, img2.rows);    
 
         std::cout << "Matching features: template(" << keysT.size() << ") vs image2(" << keysF.size() << ")" << std::endl;
-        std::vector<cv::DMatch> matches;
-        Matcher::Match(descsT, descsF, matches, 0.88f);
-
-        if (useRansac && !matches.empty()) {
-            std::vector<cv::Point2f> ptsT, ptsF;
-            for (auto &m : matches) {
-                ptsT.push_back(keysT[m.queryIdx].pt);
-                ptsF.push_back(keysF[m.trainIdx].pt);
-            }
-            Matcher::RejectBadMatchesF(ptsT, ptsF, matches, 4.0f);
-        }
 
         std::cout << "Matched: " << matches.size() << " correspondences" << std::endl;
 
@@ -207,6 +206,17 @@ int main(int argc, char** argv) {
             if (!H.empty() && !inlierMask.empty()) {
                 int inliers = cv::countNonZero(inlierMask);
                 homography_conf = (double)inliers / (double)matches.size();
+
+                /* ---------- non-linear refinement ---------- */
+                // std::vector<cv::Point2f> inT, inF;
+                // for (int i = 0; i < inlierMask.rows; ++i)
+                //     if (inlierMask.at<uchar>(i)) {
+                //         inT.push_back(ptsT[i]);
+                //         inF.push_back(ptsF[i]);
+                //     }
+
+                // if (inT.size() >= 8)
+                //     Matcher::refineHomography(H, inT, inF);
 
                 std::vector<cv::Point2f> cornersT = { {0,0}, { (float)templateImg.cols, 0 }, { (float)templateImg.cols, (float)templateImg.rows }, { 0, (float)templateImg.rows } };
                 std::vector<cv::Point2f> cornersF;
@@ -280,14 +290,8 @@ int main(int argc, char** argv) {
         std::vector<cv::DMatch> matches;
         if (!keysF.empty() && !descsF.empty()) {
             Matcher::Match(descsT, descsF, matches, 0.82f);
-            if (useRansac && !matches.empty()) {
-                std::vector<cv::Point2f> ptsT, ptsF;
-                for (auto &m : matches) {
-                    ptsT.push_back(keysT[m.queryIdx].pt);
-                    ptsF.push_back(keysF[m.trainIdx].pt);
-                }
-                Matcher::RejectBadMatchesF(ptsT, ptsF, matches, 4.0f);
-            }
+            Matcher::gridFilterMatches(keysF, matches,
+                  gray.cols, gray.rows);
         }
 
         // draw matches (template left, frame right)
@@ -307,10 +311,21 @@ int main(int argc, char** argv) {
                 ptsF.push_back(keysF[m.trainIdx].pt);
             }
             cv::Mat inlierMask;
-            cv::Mat H = cv::findHomography(ptsT, ptsF, cv::RANSAC, 4.0, inlierMask);
+            cv::Mat H = cv::findHomography(ptsT, ptsF, cv::USAC_MAGSAC, 4.0, inlierMask, 700, 0.995);
             if (!H.empty() && !inlierMask.empty()) {
                 int inliers = cv::countNonZero(inlierMask);
                 homography_conf = matchCount > 0 ? (double)inliers / (double)matchCount : 0.0;
+
+                /* ---------- non-linear refinement ---------- */
+                std::vector<cv::Point2f> inT, inF;
+                for (int i = 0; i < inlierMask.rows; ++i)
+                    if (inlierMask.at<uchar>(i)) {
+                        inT.push_back(ptsT[i]);
+                        inF.push_back(ptsF[i]);
+                    }
+
+                if (inT.size() >= 8)
+                    Matcher::refineHomography(H, inT, inF);
 
                 // draw warped template corners on frame
                 std::vector<cv::Point2f> cornersT = {

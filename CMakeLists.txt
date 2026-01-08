@@ -45,12 +45,20 @@ file(GLOB_RECURSE XFEAT_SRC
     src/*.h
 )
 
+# Build XFeat core as a library so it can be reused by other projects
+add_library(XFeatLib STATIC ${XFEAT_SRC})
+target_include_directories(XFeatLib PUBLIC ${XFEAT_INCLUDES})
+# Link core dependencies (OpenCV, ONNX Runtime)
+target_link_libraries(XFeatLib PUBLIC ${OpenCV_LIBS} ${ONNXRUNTIME_LIBS})
+
 # --------------------------
 # Function to create executable
 # --------------------------
 function(create_xfeat_executable target_name source_file)
-    add_executable(${target_name} ${source_file} ${XFEAT_SRC})
-    target_link_libraries(${target_name} PRIVATE ${XFEAT_LIBS})
+    # Executable uses the prebuilt XFeatLib to avoid exposing source files
+    add_executable(${target_name} ${source_file})
+    # Link against the XFeat library and CameraOpt (if present)
+    target_link_libraries(${target_name} PRIVATE XFeatLib CameraOpt)
     target_include_directories(${target_name} PUBLIC ${XFEAT_INCLUDES})
 endfunction()
 
@@ -61,3 +69,4 @@ create_xfeat_executable(DetectDemo DetectDemo.cc)
 create_xfeat_executable(MatchDemo  MatchDemo.cc)
 create_xfeat_executable(FlowDemo   FlowDemo.cc)
 create_xfeat_executable(testDemo   testDemo.cc)
+create_xfeat_executable(MatchRefine MatchRefine.cc)

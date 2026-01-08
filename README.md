@@ -74,3 +74,70 @@ MatchDemo.exe --model ../../model/xfeat_640x640.onnx --img1 ../../data/1.png
 
 - XFeat Core: Apache 2.0
 - C++ Implementation & Enhancements: Unlicense (public domain)
+
+## Build as a reusable library
+
+This project now builds the XFeat core as a static library `XFeatLib`. Demo executables link against `XFeatLib` so other projects can consume the library without needing the `.cc`/`.h` sources.
+
+How to build (CMake in VSCode will auto-configure on save):
+
+1. Configure the project in VS Code as usual (the provided `CMakeLists.txt` creates `XFeatLib`).
+2. Build the solution/targets from the VS Code CMake UI — `XFeatLib` will be available as a target.
+
+Using `XFeatLib` from another CMake project (example):
+
+```cmake
+# In your consuming project's CMakeLists.txt
+add_subdirectory(path/to/xfeatc) # optional if you include the repo as a submodule
+
+add_executable(MyApp main.cpp)
+target_link_libraries(MyApp PRIVATE XFeatLib CameraOpt)
+target_include_directories(MyApp PRIVATE ${PROJECT_SOURCE_DIR}/path/to/xfeatc/src ${PROJECT_SOURCE_DIR}/path/to/xfeatc/camera_opt/include)
+```
+
+Minimal `main.cpp` example to call the model:
+
+```cpp
+#include "XFeat.h"
+#include <opencv2/opencv.hpp>
+
+int main() {
+	// create detector (path can be absolute or relative)
+	XFeat xfeat("../xfeatc/model/xfeat_640x640.onnx");
+
+	// load grayscale image and resize to 640x640
+	cv::Mat img = cv::imread("../xfeatc/data/1.png", cv::IMREAD_GRAYSCALE);
+	cv::resize(img, img, cv::Size(640,640));
+
+	std::vector<cv::KeyPoint> keys;
+	cv::Mat descs;
+	xfeat.DetectAndCompute(img, keys, descs, 1000);
+
+	// draw and show
+	cv::Mat color; cv::cvtColor(img, color, cv::COLOR_GRAY2BGR);
+	cv::drawKeypoints(color, keys, color, cv::Scalar(0,0,255));
+	cv::imshow("detect", color);
+	cv::waitKey(0);
+	return 0;
+}
+```
+
+Descriptor matching example (use `Matcher` from this repo):
+
+```cpp
+// assume descs1, descs2 and keypoints keys1, keys2 have been computed
+std::vector<cv::DMatch> matches;
+Matcher::Match(descs1, descs2, matches, 0.82f);
+
+// Optional geometric filtering
+std::vector<cv::Point2f> pts1, pts2;
+for (auto &m : matches) {
+	pts1.push_back(keys1[m.queryIdx].pt);
+	pts2.push_back(keys2[m.trainIdx].pt);
+}
+Matcher::RejectBadMatchesF(pts1, pts2, matches, 4.0f);
+```
+
+Notes:
+- If you prefer to link against a prebuilt `.lib`/`.a` instead of `add_subdirectory`, use `find_library()` / `find_path()` and link the target name `XFeatLib`.
+- Demos still compile as executables and demonstrate how to use the API.
